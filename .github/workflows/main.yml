@@ -1,0 +1,15 @@
+
+---
+pages:
+  image: fibasile/docker-gitbook-cli:latest
+  script:
+  - gitbook install
+  - gitbook build
+  - mv _book public
+  only:
+  - master
+  artifacts:
+    paths:
+    - public
+  tags:
+  - k8s
