@@ -42,8 +42,8 @@ jobs:
       run: |
         cd ./_book
         git init
-        git config --local user.name "${{ secrets.GIT_NAME }}"
-        git config --local user.email "${{ secrets.GIT_EMAIL }}"
+        git config --local user.name "caoxiaodao"
+        git config --local user.email "18515878076@163.com"
         git add *
         git commit -m "update"
         git push --force  "https://${{ secrets.THE_GITHUB_TOKEN }}@${{ secrets.THE_GITHUB_REF }}" master:${{ secrets.RES_FOR_PAGES }}
