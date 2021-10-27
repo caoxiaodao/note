@@ -47,6 +47,6 @@ jobs:
         git add *
         git commit -m "update"
         echo "https://${{ secrets.THE_GITHUB_TOKEN }}@${{ secrets.THE_GITHUB_REF }}" master:${{ secrets.RES_FOR_PAGES }}"
-        git push --force "https://github.com/caoxiaodao/note.git master"
+        git push --force "@https://github.com/caoxiaodao/note.git master:gitbook-page"
       env:
         CI: true
