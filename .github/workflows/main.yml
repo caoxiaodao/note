@@ -47,6 +47,6 @@ jobs:
         git add *
         git commit -m "update"
         git remote add origin git@github.com:caoxiaodao/note.git
-        git push --force origin
+        git push --force origin gh-pages
       env:
         CI: true
