@@ -41,7 +41,8 @@ jobs:
     - name: push_to_pages
       run: |
         cd ./_book
-      
+        git init
+        
       
       env:
         CI: true
