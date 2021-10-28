@@ -45,7 +45,7 @@ jobs:
         git config --local user.name "caoxiaodao"
         git config --local user.email "18515878076@163.com"
         git checkout gh-pages
-        git add *
+        git add .
         git commit -m "update"
         git push --force origin gh-pages
       env:
