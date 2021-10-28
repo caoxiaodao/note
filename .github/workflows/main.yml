@@ -47,6 +47,6 @@ jobs:
         git checkout gh-pages
         git add .
         git commit -m "update"
-        git push --force origin gh-pages
+        git push --force origin
       env:
         CI: true
