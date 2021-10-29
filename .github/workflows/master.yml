@@ -36,21 +36,12 @@ jobs:
         MYEMAIL: 18515878076@163.com              
         MYNAME: ${{github.repository_owner}}          
       run: |
-       # cd _book
-        git config --global user.email "${MYEMAIL}"
-        git config --global user.name "caoxiaodao"
-        git init
-        #git remote add origin https://${REF}
-        git commit -m "Updated By Github Actions With Build ${{github.run_number}} of ${{github.workflow}} For Github Pages"
-        git branch -M gh-pages
-        git checkout gh-pages
-        git add <_book>
-        git push --force --quiet "https://github.com/caoxiaodao/note.git" gh-pages
-        
         cd _book
          git config --global user.email "${MYEMAIL}"
         git config --global user.name "caoxiaodao"
+        #git init
+        #git remote add origin https://${REF}
         #git add . 
-         #git commit -m "Updated By Github Actions With Build 28 of auto-generate-gitbook For Github Pages"
-         git branch -M gh-pages
+        #git commit -m "Updated By Github Actions With Build 27 of auto-generate-gitbook For Github Pages"
+        git branch -M gh-pages
         git push --force --quiet "https://github.com/caoxiaodao/note.git" gh-pages
