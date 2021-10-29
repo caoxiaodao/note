@@ -36,7 +36,7 @@ jobs:
         MYEMAIL: 18515878076@163.com              
         MYNAME: ${{github.repository_owner}}          
       run: |
-        cd _book
+       # cd _book
         git config --global user.email "${MYEMAIL}"
         git config --global user.name "caoxiaodao"
         git init
