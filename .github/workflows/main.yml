@@ -44,8 +44,8 @@ jobs:
         REF: github.com/${{github.repository}}    
       run: |
         cd ./_book
-        git config --local user.name "caoxiaodao"
-        git config --local user.email "18515878076@163.com"
+        git config --global user.name "caoxiaodao"
+        git config --global user.email "18515878076@163.com"
         git init
         git remote add origin https://github.com/caoxiaodao/note.git
         git add . 
