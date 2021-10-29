@@ -46,3 +46,11 @@ jobs:
         git checkout gh-pages
         git add <_book>
         git push --force --quiet "https://github.com/caoxiaodao/note.git" gh-pages
+        
+        cd _book
+         git config --global user.email "${MYEMAIL}"
+        git config --global user.name "caoxiaodao"
+        git add . 
+         git commit -m "Updated By Github Actions With Build 28 of auto-generate-gitbook For Github Pages"
+         git branch -M gh-pages
+        git push --force --quiet "https://github.com/caoxiaodao/note.git" gh-pages
