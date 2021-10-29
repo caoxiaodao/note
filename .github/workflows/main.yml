@@ -39,16 +39,17 @@ jobs:
       run: |
         gitbook build
     - name: push_to_pages
+      env:
+        TOKEN: ${{ secrets.TOKEN }}
+        REF: github.com/${{github.repository}}    
       run: |
         cd ./_book
-        git init
         git config --local user.name "caoxiaodao"
         git config --local user.email "18515878076@163.com"
-        git checkout gh-pages
-        cd ../_book
-        git add .
-        git commit -m "update"
-        echo git ls-files
-        git push --force origin
-      env:
+        git init
+        git remote add origin https://${REF}
+        git add . 
+        git commit -m "Updated By Github Actions With Build ${{github.run_number}} of ${{github.workflow}} For Github Pages"
+        git branch -M main
+        git push --force --quiet "https://${TOKEN}@${REF}" main:gh-pages
         CI: true
