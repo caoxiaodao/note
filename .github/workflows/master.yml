@@ -47,7 +47,7 @@ jobs:
         git config --global user.name "caoxiaodao"
         git config --global user.email "18515878076@163.com"
         git init
-        git remote add origin https://caoxiaodao:wangzi04091013@github.com/caoxiaodao/note.git
+        git remote add origin https://github.com/caoxiaodao/note.git
         git add . 
         git commit -m "Updated"
         git branch -M master
