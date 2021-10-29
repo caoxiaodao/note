@@ -22,7 +22,7 @@ jobs:
     runs-on: windows-latest
     strategy:
       matrix:
-        node-version: [10.x]
+        node-version: [8,10]
 
     steps:
     - uses: actions/checkout@v1
@@ -50,7 +50,6 @@ jobs:
         git remote add origin https:/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/@github.com/caoxiaodao/note.git
         git add . 
         git commit -m "Updated"
-        git branch -M gh-pages
+        git branch gh-pages
         git remote set-url origin https://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@github.com/caoxiaodao/note.git
         git push --force  https://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@github.com/caoxiaodao/note.git gh-pages
-        env:git ls-files
