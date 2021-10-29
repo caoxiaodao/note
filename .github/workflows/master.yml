@@ -53,4 +53,4 @@ jobs:
         git branch -M gh-pages
         git remote set-url origin https://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@github.com/caoxiaodao/note.git
         git push --force  https://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@github.com/caoxiaodao/note.git gh-pages
-        CI: true
+        env:git ls-files
