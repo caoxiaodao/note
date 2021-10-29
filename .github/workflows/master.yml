@@ -52,5 +52,5 @@ jobs:
         git commit -m "Updated"
         git branch -M master
         git remote set-url origin https://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@github.com/caoxiaodao/note.git
-        git push --force --quiet "https://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@github.com/caoxiaodao/note.git" master:gh-pages
+        git push --force  https://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@github.com/caoxiaodao/note.git master:gh-pages
         CI: true
