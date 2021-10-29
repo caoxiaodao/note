@@ -41,7 +41,7 @@ jobs:
         git config --global user.name "caoxiaodao"
         #git init
         #git remote add origin https://${REF}
-        #git add . 
-        #git commit -m "Updated By Github Actions With Build 27 of auto-generate-gitbook For Github Pages"
+        git add . 
+        git commit -m "Updated By Github Actions With Build 27 of auto-generate-gitbook For Github Pages"
         git branch -M gh-pages
         git push --force --quiet "https://github.com/caoxiaodao/note.git" gh-pages
