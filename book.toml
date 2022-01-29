@@ -1,0 +1,10 @@
+[book]
+authors = ["caonan"]
+language = "zh"
+multilingual = false
+src = "docs"
+title = "学习文档"
+
+[output.html]
+additional-css = ["theme/simple-lightbox.css", "theme/theme.css"]
+additional-js = ["theme/simple-lightbox.min.js","theme/theme.js"]
