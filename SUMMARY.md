@@ -6,3 +6,7 @@
 ## Group 1
 
 * [Page 1](group-1/page-1.md)
+
+***
+
+* [常用命令](chang-yong-ming-ling.md)
