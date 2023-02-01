@@ -2,6 +2,7 @@
 
 * [ES](README.md)
   * [常用命令](summary/chang-yong-ming-ling.md)
+  * [问题记录](readme/wen-ti-ji-lu.md)
 * [linux](linux/README.md)
   * [常用命令](linux/chang-yong-ming-ling.md)
 * [kafka](kafka/README.md)
