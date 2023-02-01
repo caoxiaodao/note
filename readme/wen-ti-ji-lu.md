@@ -10,11 +10,11 @@ ES的集群状态正常，但是数据无法正常入库，运行的tomcat无法
 
  1.报错信息
 
-![](E:\project\gitcode\notenew\note\readme\问题记录\1数据无法数据\arkbase报错1.png)
+![](../image/wen-ti-ji-lu/062bc4739119b9ec291f6b188d08217278eeed9a.png)
 
-![arkbase报错2](E:\project\gitcode\notenew\note\readme\问题记录\1数据无法数据\arkbase报错2.png)
+![](../image/wen-ti-ji-lu/1698be617ba0b233eb689dc81b0facf200bde040.png)
 
-![tomcat报错](E:\project\gitcode\notenew\note\readme\问题记录\1数据无法数据\tomcat报错.png)
+![](../image/wen-ti-ji-lu/b4b02ced25823bc5f6dc2d367e0d3bd0c6685582.png)
 
 ### 原因
 
@@ -23,7 +23,6 @@ ES的集群状态正常，但是数据无法正常入库，运行的tomcat无法
 ```
 ps -ef|grep elasticsearch
 ```
-
 
   2.查看内存占用：21G 
 
