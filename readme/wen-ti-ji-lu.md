@@ -38,7 +38,7 @@ curl 'http://localhost:31600/_cat/nodes?v&h=segments.count,segments.memory,segme
 
 #### 临时解决：关闭部分在线索引
 
-#### 永久解决：
+#### 永久解决：  
 
 1.解决方案
 
