@@ -109,7 +109,7 @@ REST API 支持结构化查询、全文查询、两者结合查询；单个术�
     
     ` [__global__]  系统上任何全局范围的地址 8.8.8.8`
 
--   http.port:http请求绑定端口
+- http.port:http请求绑定端口
   
   - 示例：`31600-31700`
 
@@ -142,8 +142,26 @@ REST API 支持结构化查询、全文查询、两者结合查询；单个术�
   - 不超过物理RAM的50%
   
   - 不超过JVM的压缩对象指针，接近于32GB（26GB大多系统试用，有些可达到30GB）
+
+- 8:-Xloggc:gc日志记录位置及文件名
   
   - 
+
+- XX:+HeapDumpOnOutOfMemoryError
+  
+  - 当触发OOM时， 就会自动生成HeapDump文件，方便我们精确定位分析Java内存使用情况
+  
+  - 默认输出在存放类文件的根文件夹
+  
+  - -XX:HeapDumpPath= ：内存溢出时heapdump文件所在位置（该目录确保存在）
+
+- -Djava.io.tmpdir=${ES_TMPDIR} ：JVM临时目录
+  
+  - 默认是es安装家目录
+
+- -XX:ErrorFile=logs/hs_err_pid%p.log
+  
+  - 当JVM出现致命错误时，指定错误日志路径。
 
 #### log4j2.properties
 
