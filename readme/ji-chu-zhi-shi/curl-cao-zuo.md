@@ -1,7 +1,5 @@
 # curl操作
 
-
-
 ## 简单操作命令
 
 - 创建索引和mapping
@@ -29,7 +27,3 @@
   - term查询
     
     - ![](../image/curl-cao-zuo/bff52aa8c4d78cba07bbd1b3dd93fd86eae3c58e.jpg)
-
-
-
-

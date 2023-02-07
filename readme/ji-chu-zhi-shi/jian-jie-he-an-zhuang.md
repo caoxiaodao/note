@@ -28,9 +28,11 @@
     
     `http.cors.allow‐origin: "*"`
 
-## ES术语简介
+## ES简介
 
-有很多文档会把他和关系型数据库的数据库，表，行进行对应，但是我觉得这样的对应反而对我们的理解以及使用产生一些不太正确的理解，所以我这里不会进行这样的对应
+ Elasticsearch 是一个分布式文档存储。支持1S以内的近乎实时入库和查询。每个索引都有一个专用的数据结构。例如：文本字段存储在到排序索引中，数字和地址字段存储在BKD树索引中；但是ES还具有无模式的能力，就是自动的根据文档的字段判断其类型
+
+### 术语
 
 - 文档：可以被索引的基础信息单元，就是一条数据；并且该文档必须有一个类型
 
@@ -59,6 +61,102 @@
   - > 索引创建好之后复制数量可以更改，分片数量不可以更改  
     > 分片怎么分布，怎么聚合相应搜索请求时es管理的不用干预
 
+### 基本功能
+
+Elasticsearch 提供 REST API、Java、JavaScript、Go、.NET、PHP、Perl、Python 、 Ruby。
+
+REST API 支持结构化查询、全文查询、两者结合查询；单个术语搜索，短语搜索、相似性搜索、前缀搜索、地理位置搜索
+
+可以使用 [Query DSL](https://www.elastic.co/guide/en/elasticsearch/reference/6.8/query-dsl.html "查询 DSL")也可以使用[SQL 样式的查询](https://www.elastic.co/guide/en/elasticsearch/reference/6.8/sql-overview.html "概述")；可以使用SQL和ES进行交互
+
+### 扩展性
+
+- 原理
+  
+  - es索引是一个或者多个的物理分片的逻辑分组；索引中的文档分布在多个分片上，这些分片又分布在多个节点上
+  
+  - 分片为主分片和副本分片；主分片数量固定，副本分片数量可随时更改
+
+- 应用：分片越多，维护索引的开销越大；分片大小越多，重新平衡集群，移动分片所需时间越长
+  
+  - 分片大小最好在几GB-几十GB之间；如果是基于时间的数据可以为20-40GB之间
+  
+  - 避免巨大的碎片问题。节点可以容纳的分片数量与可用堆空间成正比。作为一般规则，每 GB 堆空间的分片数应少于 20。
+  
+  - [使用您自己的数据和查询进行测试](https://www.elastic.co/elasticon/conf/2016/sf/quantitative-cluster-sizing)。
+
+### 常见配置和解释
+
+#### elasticsearch.yml
+
+- path.data ：数据目录
+
+- path.logs ：日志目录 
+
+- [`cluster.name`](https://www.elastic.co/guide/en/elasticsearch/reference/6.8/cluster.name.html) ：集群名称
+
+- [`node.name`](https://www.elastic.co/guide/en/elasticsearch/reference/6.8/node.name.html)：节点名称
+
+- [`network.host`](https://www.elastic.co/guide/en/elasticsearch/reference/6.8/network.host.html)：绑定host
+  
+  - 特殊地址
+    
+    `_[networkInterface]_  网络接口的地址，例如_en0_`
+    
+    `[_local_]  系统上回环地址127.0.0.1`
+    
+    `[_site_]  系统上任何站点本地地址 192.168.0.0.1`
+    
+    ` [__global__]  系统上任何全局范围的地址 8.8.8.8`
+
+-   http.port:http请求绑定端口
+  
+  - 示例：`31600-31700`
+
+- transport.tcp.port:节点通信绑定端口
+
+- discovery.zen.ping.unicast.hosts：集群发现
+  
+  - 示例
+    
+    `192.168.1.10:9300 ` 
+    
+    `192.168.1.11`
+    
+    `seeds.mydomain.com `  
+
+- discovery.zen.hosts_provider：file  集群发现，动态文件配置
+  
+  - 文件位置  config目录下unicast_hosts.txt
+
+- discovery.zen.minimum_master_nodes:集群建议的最少主节点数量
+  
+  - 脑裂现象：(主节点数量/2)+1
+
 - 
 
+### jvm.options
 
+- Xms 和Xmx：堆内存设置
+  
+  - 不超过物理RAM的50%
+  
+  - 不超过JVM的压缩对象指针，接近于32GB（26GB大多系统试用，有些可达到30GB）
+  
+  - 
+
+#### log4j2.properties
+
+### 搜索和聚合
+
+- 搜索
+  
+  - _search查询
+  
+  - from，size限制
+  
+  - match，match_phrase，bool（`must`、`should`和`must_not`）
+
+- 聚合
+  
+  - aggregations（aggs）的term聚合
