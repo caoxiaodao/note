@@ -1,4 +1,4 @@
-# 简介和安装
+# 安装和简介
 
 ## ES安装
 
@@ -27,6 +27,35 @@
     `http.cors.enabled: true  `
     
     `http.cors.allow‐origin: "*"`
+
+### ES-sql
+
+- ES安装ES-sql插件
+  
+  - 根据实际版本版本选择：官网地址 https://github.com/NLPchina/elasticsearch-sql
+  
+  - 将下载后的文件解压缩如下图，将下图所有文件放置 `ES路径/plugins/sql`
+    
+    - ![](../image/jian-jie-he-an-zhuang/2023-02-08-14-10-14-image.png)
+
+- ES安装ES-sql图形化
+  
+  ![](../image/jian-jie-he-an-zhuang/2023-02-08-14-26-30-image.png)
+  
+  - cd site-server
+  
+  - npm install express --save
+  
+  - node node-server.js
+  
+  - 访问连接  http://127.0.0.1:8080/  
+    
+    - 修改端口 site-server下的site_configuration.json
+      - ![](../image/jian-jie-he-an-zhuang/2023-02-08-14-31-30-image.png)
+
+<mark>注意：远程访问可修改配置elasticsearch.yml/elasticnetwork.host: [ _local_,_site ]</mark>
+
+## 
 
 ## ES简介
 
@@ -135,7 +164,7 @@ REST API 支持结构化查询、全文查询、两者结合查询；单个术�
 
 - 
 
-### jvm.options
+#### jvm.options
 
 - Xms 和Xmx：堆内存设置
   
@@ -163,7 +192,61 @@ REST API 支持结构化查询、全文查询、两者结合查询；单个术�
   
   - 当JVM出现致命错误时，指定错误日志路径。
 
+#### 系统配置
+
+-  禁用交换
+  
+  - 禁用 系统swap
+    
+    - 临时：sudo swapoff -a
+    
+    - 永久：vim /etc/fstab   注释swap所有行
+    
+    - 配置swappiness:将`vm.swappiness`设置为`1`
+  
+  - linux上使用mlockall，将进程地址空间定到RAM，防止内存被换出
+    
+    - 配置方式：config/elasticsearch.yml中配置bootstrap.memory_lock: true
+    
+    - 检查方式：GET _nodes?filter_path=**.mlockall
+    
+    - 常见报错
+      
+      - 运行es的用户没有锁定内存权限：ulimit -l unlimited或者修改/etc/security/limits.conf
+      
+      - JNA挂载的临时目录使用的tmp挂载了noexec；通过配置  -Djna.tmpdir=`自定义路径`
+        
+        - es使用了JNA去执行一些本地运行的exe文件
+
+- 增大文件描述符（65535甚至更多）
+  
+  - 临时：ulimit -n 65535
+  
+  - 永久 /etc/security/limits.conf
+  
+  - 检查 curl -X GET "localhost:31600/_nodes/stats/process?filter_path=**.max_file_descriptors&pretty"
+
+- 虚拟内存
+  
+  - TODO  [Virtual memory | Elasticsearch Guide [6.8] | Elastic](https://www.elastic.co/guide/en/elasticsearch/reference/6.8/vm-max-map-count.html)
+
+- 线程数：es是创建新的线程来处理不同的操作的
+  
+  - 临时：ulimit -u 4096 （ulimit -a查看全部设置）
+  
+  - 永久：在etc/security/limits.conf设置nproc
+
+- DNS缓存设置
+  
+  - todo
+
 #### log4j2.properties
+
+// TODO
+
+### 升级
+
+// TODO
 
 ### 搜索和聚合
 
