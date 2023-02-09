@@ -162,7 +162,9 @@ REST API 支持结构化查询、全文查询、两者结合查询；单个术�
   
   - 脑裂现象：(主节点数量/2)+1
 
-- 
+- action.auto_create_index: 自动创建索引限制
+  
+  - action.auto_create_index: .a,.a,.a-*
 
 #### jvm.options
 
