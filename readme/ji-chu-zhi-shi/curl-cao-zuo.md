@@ -88,6 +88,332 @@
 
 ### 文档操作
 
+#### 创建索引
+
+##### 数据类型
+
+- 字符串
+  
+  - text
+    
+    - 会分词后进行索引
+    
+    - 支持模糊，精确查询
+    
+    - 不支持聚合
+  
+  - keyword
+    
+    - 不进行分词，直接索引
+    
+    - 支持模糊，精确查询
+    
+    - 支持聚合
+  
+  - 混用:可以使用name字段进行模糊查询和分词，name.keyword进行聚合
+    
+    - ```
+      curl --location --request PUT 'localhost:31600/testmapping3' \
+      --header 'Content-Type: application/json' \
+      --data '{
+        "mappings": {
+          "_doc": {
+            "properties": {
+              "name": {
+                "type": "text",
+                "fields":{
+                    "keyword":{
+                        "type":"keyword"
+                    }
+                }
+              }
+            }
+          }
+        }
+      }'
+      ```
+
+- 数字
+  
+  - long，integer，short，byte
+  
+  - double，float，half_float,scaled_float
+
+- 日期
+  
+  - ```
+    curl -X PUT "localhost:9200/my_index?pretty" -H 'Content-Type: application/json' -d'
+    {
+      "mappings": {
+        "_doc": {
+          "properties": {
+            "date": {
+              "type":   "date",
+              "format": "strict_date_optional_time||yyyy-MM-dd HH:mm:ss||yyyy-MM-dd||epoch_millis"
+            }
+          }
+        }
+      }
+    }
+    '
+    ```
+  
+  - strict_date_optional_time严格的年月日格式：仅支持"yyyy-MM-dd"、"yyyyMMdd"、"yyyyMMddHHmmss"、"yyyy-MM-ddTHH:mm:ss"、"yyyy-MM-ddTHH:mm:ss.SSS"、"yyyy-MM-ddTHH:mm:ss.SSSZ"格式
+    
+    不支持常用的"yyyy-MM-dd HH:mm:ss"等格式。注意，"T"和"Z"是固定的字符
+  
+  - epoch_millis时间的ms值
+
+- Boolean布尔：true，“true”
+
+- 二进制
+  
+  - 可以存储base64编码字符串，默认不支持检索和store
+    
+    - store就是独立于source之外单独存储一份数据，如果数据量太大，可以store存储，source不在存储，获取时指定只获取source可以减少数据量
+    
+    - [doc_values]可以指定是否要支持检索
+
+- 区间类型：integer_range,long__range,float_range,double_range,date_range
+  
+  - ```
+    -- 创建索引
+    curl -X PUT "localhost:9200/range_index?pretty" -H 'Content-Type: application/json' -d'
+    {
+      "settings": {
+        "number_of_shards": 2
+      },
+      "mappings": {
+        "_doc": {
+          "properties": {
+            "expected_attendees": {
+              "type": "integer_range"
+            },
+            "time_frame": {
+              "type": "date_range", 
+              "format": "yyyy-MM-dd HH:mm:ss||yyyy-MM-dd||epoch_millis"
+            }
+          }
+        }
+      }
+    }
+    '
+    -- 插入数据
+    curl -X PUT "localhost:9200/range_index/_doc/1?refresh&pretty" -H 'Content-Type: application/json' -d'
+    {
+      "expected_attendees" : { 
+        "gte" : 10,
+        "lte" : 20
+      },
+      "time_frame" : { 
+        "gte" : "2015-10-31 12:00:00", 
+        "lte" : "2015-11-01"
+      }
+    }
+    '
+    
+    -- 查询
+    curl --location --request GET 'localhost:31600/testmapping3/_doc/_search' \
+    --header 'Content-Type: application/json' \
+    --data '{
+      "query": {
+        "range": {
+          "expected_attendees": {
+            "gte":"1",
+            "lte":"11",
+             "relation" : "CONTAINS" 
+          }
+        }
+      }
+    }'
+    ```
+  
+  - relation关系
+    
+    - intersects查询和文档存 储范围有交叉即可（默认）
+    
+    - within  文档范围在查询范围内
+    
+    - contains 文档范围包含查询范围
+
+- 复杂类型
+  
+  - Array数组
+    
+    - 设置mapping的时候无需指定arrays类型，但是long，text等都支持多值，但是必须类型一样，或者是可以进行强制类型转换
+  
+  - Object对象
+  
+  - Nested类型：一种可以让层级对应各自索引查询的object对象，和object的不同见
+    
+    详细见：[Nested datatype | Elasticsearch Guide [6.8] | Elastic](https://www.elastic.co/guide/en/elasticsearch/reference/6.8/nested.html)[Nested datatype | Elasticsearch Guide [6.8] | Elastic](https://www.elastic.co/guide/en/elasticsearch/reference/6.8/nested.html)
+
+- 特定类型
+  
+  - GEO地理位置
+    
+    - Geo-point：一个经纬度确定的点
+      
+      - 字符串是纬度，经度；数组是经度，纬度
+      
+      - ```
+        // 1）geo_bounding_box_shape经纬确定的矩形
+        GET location/_search
+        {
+          "query": {
+            "geo_bounding_box": {
+              "locationStr": {
+                "top_left": [116.498353, 40.187328],
+                "bottom_right": [116.610461, 40.084509]
+              }
+            }
+          }
+        }
+        //2)geo_distance 选中中心点和半径进行查询
+        GET location/_search
+        {
+          "query": {
+            "geo_distance": {
+              "distance": "5km",
+              "locationStr": "40.174697,116.5864"
+            }
+          },
+          "sort": [
+            {
+              "_geo_distance": {
+                "locationStr": "40.174697,116.5864",
+                "order": "asc",
+                "unit": "km",
+                "distance_type": "plane"
+              }
+            }
+          ]
+        }
+        //返回
+        {
+            "_index" : "location",
+            "_type" : "_doc",
+            "_id" : "2",
+            "_score" : null,
+            "_source" : {
+              "locationStr" : "40.19103839805197,116.5624013764374"
+            },
+            "sort" : [
+              2.7309695122568725 //距离目标地点的直线距离
+            ]
+          }
+        
+        　//　3）geo_polygon多边形查询
+        GET location/_search
+        {
+          "query": {
+            "geo_polygon": {
+              "locationStr": {
+                "points": [
+                  "40.178012,116.577188",
+                  "40.169329, 116.586315",
+                  "40.178288, 116.591813"
+                ]
+              }
+            }
+          }
+        }
+        
+        　　4）geo_shape查询（查询两个地理位置形状的位置关系）
+        GET /my_index_geo_shape/_search
+        {
+            "query":{
+                "bool": {
+                    "must": {
+                        "match_all": {}
+                    },
+                    "filter": {
+                        "geo_shape": {
+                            "location": {
+                                "shape": {
+                                    "type": "envelope",
+                                    "coordinates" : [[116.327854,39.90075], [117.065057,39.063287]]
+                                },
+                                "relation": "within"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        INTERSECTS - 和查询位置橡胶的存储位置。
+        DISJOINT - 和查询位置完全无交集的存储位置
+        WITHIN - 查询几何图形包含的所有存储集合
+        CONTAINS - 存储集合包含查询几何图形的所有文档。
+        
+        
+        ```
+    
+    - Geo-shape：一个经纬度确定的点，一个中心点+半径确定的圆，多个点确定的多边形
+  
+  - IP类型
+    
+    - 支持ipv4和ipv6类型
+    
+    - ```
+      curl -X GET "localhost:9200/my_index/_search?pretty" -H 'Content-Type: application/json' -d'
+      {
+        "query": {
+          "term": {
+            "ip_addr": "192.168.0.0/16"
+          }
+        }
+      }
+      '
+      CIDR 表示法: [ip_address]/[prefix_l
+      ```
+  
+  - completion自动补全类型
+  
+  - token_count令牌计数类型：是一个int类型，接受字符串值，然后索引字符串中标记数
+    
+    - ```
+      curl -X PUT "localhost:9200/my_index?pretty" -H 'Content-Type: application/json' -d'
+      {
+        "mappings": {
+          "_doc": {
+            "properties": {
+              "name": { 
+                "type": "text",
+                "fields": {
+                  "length": { 
+                    "type":     "token_count",
+                    "analyzer": "standard"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+      '
+      curl -X PUT "localhost:9200/my_index/_doc/1?pretty" -H 'Content-Type: application/json' -d'
+      { "name": "John Smith" }
+      '
+      curl -X PUT "localhost:9200/my_index/_doc/2?pretty" -H 'Content-Type: application/json' -d'
+      { "name": "Rachel Alice Williams" }
+      '
+      curl -X GET "localhost:9200/my_index/_search?pretty" -H 'Content-Type: application/json' -d'
+      {
+        "query": {
+          "term": {
+            "name.length": 3 
+          }
+        }
+      }
+      '
+      返回Rachel Alice Williams
+      ```
+  
+  - percolator父子索引：//TODO
+  
+  - alias别名
+
 #### index操作
 
 - op_type=create文档id存在则报错；当没有该设置时文档存在则更新，不存在则新增
@@ -120,10 +446,7 @@
         "message" : "trying out Elasticsearch"
     }
     '
-    
     ```
-    
-    
 
 - 等待活动分片：索引请求返回前需要等待多少个分片写入成功，
   
@@ -147,7 +470,6 @@
   
   - ```
     curl -X GET "localhost:9200/twitter/_doc/0?_source_includes=*.id&_source_excludes=entities&pretty"
-    
     ```
   
   - ![](../image/curl-cao-zuo/2023-02-09-17-24-12-image.png)
@@ -156,7 +478,6 @@
 
 - ```
   curl -X GET "localhost:9200/twitter/_doc/1/_source?_source_includes=*.id&_source_excludes=entities&pretty"
-  
   ```
   
   ![](../image/curl-cao-zuo/2023-02-09-17-09-29-image.png)
@@ -164,16 +485,17 @@
 - stored_fields
   
   - 和source的区别是只展示已存储数据的字段(mapping中counter的store是false)
+  
   - ```
     curl -X GET "localhost:9200/twitter/_doc/1?stored_fields=tags,counter&pretty"
-    
     ```
+  
   - ![](../image/curl-cao-zuo/2023-02-09-17-16-19-image.png)
+
 - 指定routing
   
   ```
   curl -X GET "localhost:9200/twitter/_doc/2?routing=user1&pretty"
-  
   ```
 
 #### delete删除文档信息
@@ -233,6 +555,63 @@
 - 启用任务删除  TODO
 
 #### 更新文档
+
+- 基本用法
+  
+  - ```
+    curl -X POST "localhost:9200/test/_doc/1/_update?pretty" -H 'Content-Type: application/json' -d'
+    {
+        "doc" : {
+            "name" : "new_name",/原来不存在该字段
+            "tag" : "blue"//原来存在该字段
+        },
+         "detect_noop": false//不管字段有没有更新都强制执行更新
+    //docid存在则更新，不存在则新增；如果没有该字段docid不存在，则会报错
+         "doc_as_upsert" : true
+    }
+    '
+    ```
+
+- 脚本更新
+  
+  - ```
+    curl -X POST "localhost:9200/test/_doc/1/_update?pretty" -H 'Content-Type: application/json' -d'
+    {
+        "script" : {
+            "source": "if (ctx._source.tags.contains(params.tag)) { ctx.op = \u0027delete\u0027 } else { ctx.op = \u0027none\u0027 }",
+            "lang": "painless",
+            "params" : {
+                "tag" : "green"
+            }
+        }
+    }
+    '
+    ```
+
+- upserts
+  
+  - ```
+    curl -X POST "localhost:9200/sessions/session/dh3sgudg8gsrgl/_update?pretty" -H 'Content-Type: application/json' -d'
+    {
+        //false ：存在则执行script不存在则执行upset
+        // true : 存在执行script不存在执行以upsert为基础执行script
+        "scripted_upsert":true,
+        "script" : {
+            "id": "my_web_session_summariser",
+            "params" : {
+                "pageViewEvent" : {
+                    "url":"foo.com/bar",
+                    "response":404,
+                    "time":"2014-01-01 12:32"
+                }
+            }
+        },
+        "upsert" : {}
+    }
+    '
+    ```
+  
+  - 
 
 ## 简单操作命令
 
