@@ -11,3 +11,5 @@
   * [常用命令](linux/chang-yong-ming-ling.md)
 * [kafka](kafka/README.md)
   * [常用命令](kafka/chang-yong-ming-ling.md)
+* [java](java/README.md)
+  - [性能分析](java/xingnengfenxi.md)
