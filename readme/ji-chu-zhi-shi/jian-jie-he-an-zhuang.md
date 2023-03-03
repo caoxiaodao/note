@@ -53,9 +53,7 @@
     - 修改端口 site-server下的site_configuration.json
       - ![](../image/jian-jie-he-an-zhuang/2023-02-08-14-31-30-image.png)
 
-<mark>注意：远程访问可修改配置elasticsearch.yml/elasticnetwork.host: [ _local_,_site ]</mark>
-
-## 
+注意：远程访问可修改配置elasticsearch.yml/elasticnetwork.host: [ _local_,_site ]
 
 ## ES简介
 
