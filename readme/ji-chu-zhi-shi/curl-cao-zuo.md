@@ -38,7 +38,13 @@
 
 ## 常用配置
 
-### 通配符启用 action.destructive_requires_name
+### 通配符启用
+
+action.destructive_requires_name
+
+### 自动创建索引
+
+action.auto_create_index：新增文档的时候，如果索引不存在是报错还是自动创建
 
 ## 数据类型
 
@@ -1175,17 +1181,15 @@ curl -X GET "localhost:9200/{索引名称}/_stats?pretty"
 }
 ```
 
-
-
 ##### 分词器使用
 
--   按照索引字段进行分词
+-  按照索引字段进行分词
   
   ```
   curl -X GET "localhost:9200/analyze_sample/_analyze?pretty" -H 'Content-Type: application/json' -d'
   {
-    "field" : "obj1.field1",
-    "text" : "this is a test"
+   "field" : "obj1.field1",
+   "text" : "this is a test"
   }
   '
   ```
@@ -1199,7 +1203,6 @@ curl -X GET "localhost:9200/{索引名称}/_stats?pretty"
     "text" : "this is a test"
   }
   '
-  
   ```
 
 ### 模板
@@ -1238,8 +1241,6 @@ curl -X PUT "localhost:9200/_template/template_1?pretty" -H 'Content-Type: appli
     }
 }
 '
-
-
 ```
 
 ###### 更新  todo
@@ -1306,13 +1307,167 @@ curl -X DELETE "localhost:9200/_template/template_1?pretty"
 
 ### 写入文档
 
+    // 带有id
+    curl -X PUT "localhost:9200/twitter/_doc/1?op_type=create&pretty" -H 'Content-Type: application/json' -d'
+    {
+        "user" : "kimchy",
+        "post_date" : "2009-11-15T14:12:12",
+        "message" : "trying out Elasticsearch"
+    }
+    '
+    h"
+    }
+    //自动生成id
+    curl -X POST "localhost:9200/twitter/_doc/?pretty" -H 'Content-Type: application/json' -d'
+    {
+        "user" : "kimchy",
+        "post_date" : "2009-11-15T14:12:12",
+        "message" : "trying out Elasticsearch"
+    }
+    '
+
+- op_type=create文档id存在则报错；当没有该设置时文档存在则更新，不存在则新增
+
+- 路由配置
+  
+       curl -X POST "localhost:9200/twitter/_doc?routing=kimchy&pretty" -H 'Content-Type: application/json' -d'
+      {
+          "user" : "kimchy",
+          "post_date" : "2009-11-15T14:12:12",
+          "message" : "trying out Elasticsearch"
+      }
+      '
+  
+  - 分片获取方式`hash(routing)%分片数量`，es默认使用_id为routing确定分片位置，然后进行写入和查询
+  
+  - 指定routing后搜索效率会增加，但是会导致同一分片上面_id不唯一和索引数据分布不均的问题
+  
+  - `index.routing_partition_size`设置索引根据routing路由shard的数量，可解决一部分数据分布不均问题
+
+- 等待活动分片：wait_for_active_shards，等待多少分片在线才可以执行写入操作；如果我们有1个主分片，2个副本，则可以设置为1-3任意数字
+
+- timeout：timeout=5m，主分片如果不可用，等待多久返回执行结果，默认是1分钟
+
+- 版本控制
+  
+  - version=2：默认使用内部版本控制，但是可以采用数据库储存版本然后使用外部版本控制
+  
+  - version_type=external：新版本大于存储版本可以成功更新，否则报错
+  
+  - version_type=external_gte新版本<mark>等于或者</mark>大于存储版本可以成功更新，否则报错
+
+- 返回值
+  
+      {
+          "_shards" : {
+              "total" : 2,//碎片数量（1个主碎片+1个副本碎片）
+              "failed" : 0,//失败数量
+              "successful" : 2 //成功数量
+          },
+          "_index" : "twitter",//索引名称
+          "_type" : "_doc",//类型
+          "_id" : "1",//id
+          "_version" : 1,//版本号
+          "_seq_no" : 0,
+          "_primary_term" : 1,
+          "result" : "created"//新增，（也可能是updated）
+      }
+
 ### 更新文档
 
 ### 删除文档
 
+#### 根据id删除文档
+
+```
+curl -X DELETE "localhost:9200/twitter/_doc/1?pretty"
+// 如果分片不可用，等待多久时间
+curl -X DELETE "localhost:9200/twitter/_doc/1?timeout=5m&pretty"
+```
+
+- routing
+
+- wait_for_active_shards
+
+- refresh
+
+#### 根据查询条件删除文档
+
+```
+curl -X POST "localhost:9200/twitter/_delete_by_query?pretty" -H 'Content-Type: application/json' -d'
+{
+  "query": { 
+    "match": {
+      "message": "some message"
+    }
+  }
+}
+// conflicts=proceed版本冲突会继续删除
+'
+curl -X POST "localhost:9200/twitter/_doc/_delete_by_query?conflicts=proceed&pretty" -H 'Content-Type: application/json' -d'
+{
+  "query": {
+    "match_all": {}
+  }
+}
+'
+```
+
+- 依次执行多个搜索请求，找到所有匹配文档并删除，每找到一批文档就会执行一批的删除操作；如果某些批量操作被拒绝（重试10次），已删除的数据不会回滚
+
+- routing=1
+
+- scroll_size=5000（每批数据的大小）
+
+- refresh：刷新所有涉及删除的分片，和delete api不同只删除收到删除请求的分片
+
+- wait_for_active_shards
+
+- wait_for_completion
+
+- pretty、refresh、wait_for_completion（TODO）、wait_for_active_shards（活动分片数量）、timeout（等待不可用分片变成可用分片的时间)、scroll(搜索上线文保存活动状态的时间)、requests_per_second（限制批量操作速率）
+
+### 删除任务删除文档  TODO
+
 ### 文档读操作
 
 ###### 按照id读取文档
+
+    curl -X GET "localhost:9200/twitter/_doc/0?pretty"
+    // head查询是否存在
+    curl -I "localhost:9200/twitter/_doc/0?pretty"
+
+- source字段
+  
+      curl -X GET "localhost:9200/twitter/_doc/0?_source_includes=*.id&_source_excludes=entities&pretty"
+  
+  ![](../image/curl-cao-zuo/2023-02-09-17-24-12-image.png)
+
+- 只获取source字段
+  
+  ```
+  curl -X GET "localhost:9200/twitter/_doc/1/_source?_source_includes=*.id&_source_excludes=entities&pretty"
+  ```
+  
+  ![](../image/curl-cao-zuo/2023-02-09-17-09-29-image.png)
+
+- stored字段
+  
+  ![](../image/curl-cao-zuo/2023-03-08-14-37-48-image.png)
+  
+      curl -X GET "localhost:9200/twitter/_doc/1?stored_fields=tags,counter&pretty"
+  
+  ![](../image/curl-cao-zuo/2023-02-09-17-16-19-image.png)
+  
+  - store字段会占用另外的磁盘空间，但是store之后的字段聚合和搜索性能都更好，如果source字段过多的时候，需要特别使用的字段可以设置为store
+
+- refresh：慎用，因为会刷新相关碎片之后再执行查询
+
+- routing：只查询特定routing上面的文档数据
+
+- 副本数量越多，get性能越好  ODO
+
+
 
 ###### 批量读取文档
 
@@ -1338,23 +1493,7 @@ curl -X DELETE "localhost:9200/_template/template_1?pretty"
   }
   ```
 
-- 路由
-  
-  - 分片获取方式`hash(routing)%分片数量`，es默认使用_id为routing确定分片位置，然后进行写入和查询
-  
-  - 指定routing后搜索效率会增加，但是会导致同一分片上面_id不唯一和索引数据分布不均的问题
-  
-  - `index.routing_partition_size`设置索引根据routing路由shard的数量，可解决一部分数据分布不均问题
-    
-    ```
-    curl -X POST "localhost:9200/twitter/_doc?routing=kimchy&pretty" -H 'Content-Type: application/json' -d'
-    {
-        "user" : "kimchy",
-        "post_date" : "2009-11-15T14:12:12",
-        "message" : "trying out Elasticsearch"
-    }
-    '
-    ```
+- 
 
 - 等待活动分片：索引请求返回前需要等待多少个分片写入成功，
   
@@ -1366,101 +1505,7 @@ curl -X DELETE "localhost:9200/_template/template_1?pretty"
   
   - TODO
 
-#### get获取文档信息
-
-索引信息和数据如下
-
-![](../image/curl-cao-zuo/2023-02-09-17-17-06-image.png)
-
-![](../image/curl-cao-zuo/2023-02-09-17-17-53-image.png)
-
-- source字段过滤
-  
-  - ```
-    curl -X GET "localhost:9200/twitter/_doc/0?_source_includes=*.id&_source_excludes=entities&pretty"
-    ```
-  
-  - ![](../image/curl-cao-zuo/2023-02-09-17-24-12-image.png)
-
-- 只获取source字段
-
-- ```
-  curl -X GET "localhost:9200/twitter/_doc/1/_source?_source_includes=*.id&_source_excludes=entities&pretty"
-  ```
-  
-  ![](../image/curl-cao-zuo/2023-02-09-17-09-29-image.png)
-
-- stored_fields
-  
-  - 和source的区别是只展示已存储数据的字段(mapping中counter的store是false)
-  
-  - ```
-    curl -X GET "localhost:9200/twitter/_doc/1?stored_fields=tags,counter&pretty"
-    ```
-  
-  - ![](../image/curl-cao-zuo/2023-02-09-17-16-19-image.png)
-
-- 指定routing
-  
-  ```
-  curl -X GET "localhost:9200/twitter/_doc/2?routing=user1&pretty"
-  ```
-
-#### delete删除文档信息
-
-- 基本用法
-  
-  - ```
-    curl -X DELETE "localhost:9200/twitter/_doc/1?pretty"
-    ```
-
-- 路由配置
-
-- 等待活动分片wait_for_active_shards
-
-- 刷新
-
-- 暂停:如果主分片不可用等待多长时间返回
-  
-  - ```
-    curl -X DELETE "localhost:9200/twitter/_doc/1?timeout=5m&pretty"
-    ```
-
-#### 通过query去delete删除文档信息
-
-- 基本用法
-  
-  - ```
-    curl -X POST "localhost:9200/twitter/_delete_by_query?pretty" -H 'Content-Type: application/json' -d'
-    {
-      "query": { 
-        "match": {
-          "message": "some message"
-        }
-      }
-    }
-    '
-    ```
-  
-  - 删除逻辑：依次执行多个搜索请求，找到所有匹配文档并删除；没找到一批文档就会执行一批的删除操作；如果某些批量操作被拒绝（重试10次），已删除的数据不会回滚
-  
-  - ![](../image/curl-cao-zuo/2023-02-09-18-17-06-image.png)
-
-- conflicts=proceed因版本冲突导致的种植将不存在
-  
-  - ```
-    curl -X POST "localhost:9200/twitter/_doc/_delete_by_query?conflicts=proceed&pretty" -H 'Content-Type: application/json' -d'
-    {
-      "query": {
-        "match_all": {}
-      }
-    }
-    '
-    ```
-
-- 更多支持：routing=1、croll_size=5000（每批数据的大小）、pretty、refresh、wait_for_completion（TODO）、wait_for_active_shards（活动分片数量）、timeout（等待不可用分片变成可用分片的时间)、scroll(搜索上线文保存活动状态的时间)、requests_per_second（限制批量操作速率）
-
-- 启用任务删除  TODO
+#### 
 
 #### 更新文档
 
@@ -1520,31 +1565,3 @@ curl -X DELETE "localhost:9200/_template/template_1?pretty"
     ```
   
   - 
-
-## 简单操作命令
-
-- 创建索引和mapping
-  
-  - ![](../image/curl-cao-zuo/68087e750c060cfd21ac0bc04b922e0b623ddc59.jpg)
-
-- 删除索引  
-  
-  ![](../image/curl-cao-zuo/0c62f8ea1cb5fa2071e26fa3a482816f7c89f0fa.jpg)
-
-- 创建文档和修改文档
-  
-  - ![](../image/curl-cao-zuo/7b1a0ead1c1ffd090ae797081135040a882582b9.jpg)
-
-- 查询文档
-  
-  - 通过id查询
-    
-    - ![](../image/curl-cao-zuo/93adabbdde12fc4bfcc21bc4f15dec0e0d47e512.jpg)
-  
-  - query-string查询
-    
-    - ![](../image/curl-cao-zuo/d3037b29b9bf4bb138db6abde06c65b2ca1fed04.jpg)
-  
-  - term查询
-    
-    - ![](../image/curl-cao-zuo/bff52aa8c4d78cba07bbd1b3dd93fd86eae3c58e.jpg)
