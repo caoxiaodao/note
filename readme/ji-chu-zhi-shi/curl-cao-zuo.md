@@ -1255,6 +1255,8 @@ curl -X DELETE "localhost:9200/_template/template_1?pretty"
 
 ### 基本原理
 
+#### 乐观并发控制
+
 #### 写入原理
 
 - 写入单个文档
@@ -1375,139 +1377,7 @@ curl -X DELETE "localhost:9200/_template/template_1?pretty"
 
 ### 更新文档
 
-### 删除文档
-
-#### 根据id删除文档
-
-```
-curl -X DELETE "localhost:9200/twitter/_doc/1?pretty"
-// 如果分片不可用，等待多久时间
-curl -X DELETE "localhost:9200/twitter/_doc/1?timeout=5m&pretty"
-```
-
-- routing
-
-- wait_for_active_shards
-
-- refresh
-
-#### 根据查询条件删除文档
-
-```
-curl -X POST "localhost:9200/twitter/_delete_by_query?pretty" -H 'Content-Type: application/json' -d'
-{
-  "query": { 
-    "match": {
-      "message": "some message"
-    }
-  }
-}
-// conflicts=proceed版本冲突会继续删除
-'
-curl -X POST "localhost:9200/twitter/_doc/_delete_by_query?conflicts=proceed&pretty" -H 'Content-Type: application/json' -d'
-{
-  "query": {
-    "match_all": {}
-  }
-}
-'
-```
-
-- 依次执行多个搜索请求，找到所有匹配文档并删除，每找到一批文档就会执行一批的删除操作；如果某些批量操作被拒绝（重试10次），已删除的数据不会回滚
-
-- routing=1
-
-- scroll_size=5000（每批数据的大小）
-
-- refresh：刷新所有涉及删除的分片，和delete api不同只删除收到删除请求的分片
-
-- wait_for_active_shards
-
-- wait_for_completion
-
-- pretty、refresh、wait_for_completion（TODO）、wait_for_active_shards（活动分片数量）、timeout（等待不可用分片变成可用分片的时间)、scroll(搜索上线文保存活动状态的时间)、requests_per_second（限制批量操作速率）
-
-### 删除任务删除文档  TODO
-
-### 文档读操作
-
-###### 按照id读取文档
-
-    curl -X GET "localhost:9200/twitter/_doc/0?pretty"
-    // head查询是否存在
-    curl -I "localhost:9200/twitter/_doc/0?pretty"
-
-- source字段
-  
-      curl -X GET "localhost:9200/twitter/_doc/0?_source_includes=*.id&_source_excludes=entities&pretty"
-  
-  ![](../image/curl-cao-zuo/2023-02-09-17-24-12-image.png)
-
-- 只获取source字段
-  
-  ```
-  curl -X GET "localhost:9200/twitter/_doc/1/_source?_source_includes=*.id&_source_excludes=entities&pretty"
-  ```
-  
-  ![](../image/curl-cao-zuo/2023-02-09-17-09-29-image.png)
-
-- stored字段
-  
-  ![](../image/curl-cao-zuo/2023-03-08-14-37-48-image.png)
-  
-      curl -X GET "localhost:9200/twitter/_doc/1?stored_fields=tags,counter&pretty"
-  
-  ![](../image/curl-cao-zuo/2023-02-09-17-16-19-image.png)
-  
-  - store字段会占用另外的磁盘空间，但是store之后的字段聚合和搜索性能都更好，如果source字段过多的时候，需要特别使用的字段可以设置为store
-
-- refresh：慎用，因为会刷新相关碎片之后再执行查询
-
-- routing：只查询特定routing上面的文档数据
-
-- 副本数量越多，get性能越好  ODO
-
-
-
-###### 批量读取文档
-
-### 文档聚合查询
-
-## 集群操作
-
-## cat查询
-
-#### 
-
-- op_type=create文档id存在则报错；当没有该设置时文档存在则更新，不存在则新增
-  
-  ```
-  curl -X PUT "localhost:9200/twitter/_doc/1?op_type=create&pretty" -H 'Content-Type: application/json' -d'
-  {
-      "user" : "kimchy",
-      "post_date" : "2009-11-15T14:12:12",
-      "message" : "trying out Elasticsearch"
-  }
-  '
-  h"
-  }
-  ```
-
-- 
-
-- 等待活动分片：索引请求返回前需要等待多少个分片写入成功，
-  
-  - 最小值1（默认，主分片）
-  
-  - 最大值 副本数量+1
-
-- 索引自增
-  
-  - TODO
-
-#### 
-
-#### 更新文档
+#### 单个更新
 
 - 基本用法
   
@@ -1559,9 +1429,352 @@ curl -X POST "localhost:9200/twitter/_doc/_delete_by_query?conflicts=proceed&pre
                 }
             }
         },
-        "upsert" : {}
+        "upsert" : {
+                  "counter" : 1
+          }
     }
     '
     ```
+
+#### 批量更新
+
+    curl -X POST "localhost:9200/twitter/_update_by_query?pretty" -H 'Content-Type: application/json' -d'
+    {
+      "script": {
+        "source": "ctx._source.likes++",
+        "lang": "painless"
+      },
+      "query": {
+        "term": {
+          "user": "kimchy"
+        }
+      }
+    }
+    '
+
+-  如果索引"dynamic": false，添加数据的时候没有对应prop数据，后面更新prop数据之后，该字段依旧只是存储，无法查询，执行`POST test/_update_by_query?refresh&conflicts=proceed` 就可以查询了
+
+- routing，conflicts，wait_for_active_shards
+
+- scroll_size：1000:批量更新是每批次多少条数据
+
+- scroll=10m：scroll查询保存的时间
+
+- requests_per_second：500   每秒执行多少条数据；
   
-  - 
+  - 删除或者更新大数据的时候放慢执行速度以免es会挂掉
+  
+  - 如果每批次1000条，每秒500个request，那么执行完一批需要1000/500=2s的时间，写入1000条数据0.5s的时间，就可以休息1.5s的时间
+
+- slice
+  
+      // 手动分片
+      POST twitter/_update_by_query
+      {
+        "slice": {
+          "id": 0,
+          "max": 2
+        },
+        "script": {
+          "source": "ctx._source['extra'] = 'test'"
+        }
+      }  
+      //自动分片             
+      POST twitter/_update_by_query?refresh&slices=5
+      {
+        "script": {
+          "source": "ctx._source['extra'] = 'test'"
+        }
+      }
+  
+  - 并行执行，执行效率变快
+  
+  - 返回值
+    
+        {
+            "took": 214,
+            "timed_out": false,
+            "total": 4,
+            "updated": 4,
+            "deleted": 0,
+            "batches": 3,
+            "version_conflicts": 0,
+            "noops": 0,
+            "retries": {
+                "bulk": 0,
+                "search": 0
+            },
+            "throttled_millis": 0,
+            "requests_per_second": -1.0,
+            "throttled_until_millis": 0,
+            "slices": [
+                {
+                    "slice_id": 0,
+                    "total": 1,
+                    "updated": 1,
+                    "deleted": 0,
+                    "batches": 1,
+                    "version_conflicts": 0,
+                    "noops": 0,
+                    "retries": {
+                        "bulk": 0,
+                        "search": 0
+                    },
+                    "throttled_millis": 0,
+                    "requests_per_second": -1.0,
+                    "throttled_until_millis": 0
+                },
+                {
+                    "slice_id": 1,
+                    "total": 0,
+                    "updated": 0,
+                    "deleted": 0,
+                    "batches": 0,
+                    "version_conflicts": 0,
+                    "noops": 0,
+                    "retries": {
+                        "bulk": 0,
+                        "search": 0
+                    },
+                    "throttled_millis": 0,
+                    "requests_per_second": -1.0,
+                    "throttled_until_millis": 0
+                },
+                {
+                    "slice_id": 2,
+                    "total": 2,
+                    "updated": 2,
+                    "deleted": 0,
+                    "batches": 1,
+                    "version_conflicts": 0,
+                    "noops": 0,
+                    "retries": {
+                        "bulk": 0,
+                        "search": 0
+                    },
+                    "throttled_millis": 0,
+                    "requests_per_second": -1.0,
+                    "throttled_until_millis": 0
+                },
+                {
+                    "slice_id": 3,
+                    "total": 1,
+                    "updated": 1,
+                    "deleted": 0,
+                    "batches": 1,
+                    "version_conflicts": 0,
+                    "noops": 0,
+                    "retries": {
+                        "bulk": 0,
+                        "search": 0
+                    },
+                    "throttled_millis": 0,
+                    "requests_per_second": -1.0,
+                    "throttled_until_millis": 0
+                },
+                {
+                    "slice_id": 4,
+                    "total": 0,
+                    "updated": 0,
+                    "deleted": 0,
+                    "batches": 0,
+                    "version_conflicts": 0,
+                    "noops": 0,
+                    "retries": {
+                        "bulk": 0,
+                        "search": 0
+                    },
+                    "throttled_millis": 0,
+                    "requests_per_second": -1.0,
+                    "throttled_until_millis": 0
+                }
+            ],
+            "failures": []
+        }
+
+### 删除文档
+
+#### 根据id删除文档
+
+```
+curl -X DELETE "localhost:9200/twitter/_doc/1?pretty"
+// 如果分片不可用，等待多久时间
+curl -X DELETE "localhost:9200/twitter/_doc/1?timeout=5m&pretty"
+```
+
+- routing
+
+- wait_for_active_shards
+
+- refresh
+
+#### 根据查询条件删除文档
+
+```
+curl -X POST "localhost:9200/twitter/_delete_by_query?pretty" -H 'Content-Type: application/json' -d'
+{
+  "query": { 
+    "match": {
+      "message": "some message"
+    }
+  }
+}
+// conflicts=proceed版本冲突会继续删除
+'
+curl -X POST "localhost:9200/twitter/_doc/_delete_by_query?conflicts=proceed&pretty" -H 'Content-Type: application/json' -d'
+{
+  "query": {
+    "match_all": {}
+  }
+}
+'
+```
+
+- 依次执行多个搜索请求，找到所有匹配文档并删除，每找到一批文档就会执行一批的删除操作；如果某些批量操作被拒绝（重试10次），已删除的数据不会回滚
+
+- routing=1
+
+- scroll_size=5000（每批数据的大小）
+
+- refresh：刷新所有涉及删除的分片，和delete api不同只删除收到删除请求的分片
+
+- wait_for_active_shards：等待多少分片在线才可以执行删除操作
+
+- wait_for_completion
+
+- scroll：scroll查询可以保存的时间，不是全量处理数据的时间，是处理本次请求中数据的时间即可
+
+- requests_per_second：每秒执行的请求数量，控制处理速率的
+
+- pretty、refresh、timeout 
+
+### 文档读操作
+
+###### get
+
+    curl -X GET "localhost:9200/twitter/_doc/0?pretty"
+    // head查询是否存在
+    curl -I "localhost:9200/twitter/_doc/0?pretty"
+
+- source字段
+  
+      curl -X GET "localhost:9200/twitter/_doc/0?_source_includes=*.id&_source_excludes=entities&pretty"
+  
+  ![](../image/curl-cao-zuo/2023-02-09-17-24-12-image.png)
+
+- 只获取source字段
+  
+  ```
+  curl -X GET "localhost:9200/twitter/_doc/1/_source?_source_includes=*.id&_source_excludes=entities&pretty"
+  ```
+  
+  ![](../image/curl-cao-zuo/2023-02-09-17-09-29-image.png)
+
+- stored字段
+  
+  ![](../image/curl-cao-zuo/2023-03-08-14-37-48-image.png)
+  
+      curl -X GET "localhost:9200/twitter/_doc/1?stored_fields=tags,counter&pretty"
+  
+  ![](../image/curl-cao-zuo/2023-02-09-17-16-19-image.png)
+  
+  - store字段会占用另外的磁盘空间，但是store之后的字段聚合和搜索性能都更好，如果source字段过多的时候，需要特别使用的字段可以设置为store
+
+- refresh：慎用，因为会刷新相关碎片之后再执行查询
+
+- routing：只查询特定routing上面的文档数据
+
+- 副本数量越多，get性能越好  ODO
+
+###### mget
+
+    curl -X GET "localhost:9200/test/_doc/_mget?pretty" -H 'Content-Type: application/json' -d'
+    {
+        "ids" : ["1", "2"]
+    }
+    '
+
+### bulk
+
+详见 [Elasticsearch(037)：es中批量操作之bulk_es bulk_瘦子没有夏天的博客-CSDN博客](https://blog.csdn.net/weixin_39723544/article/details/109237175)
+
+    curl -X POST "localhost:9200/_bulk?pretty" -H 'Content-Type: application/json' -d'
+    { "index" : { "_index" : "test", "_type" : "_doc", "_id" : "1" } }//新增
+    { "field1" : "value1" }
+    { "delete" : { "_index" : "test", "_type" : "_doc", "_id" : "2" } }//删除
+    { "create" : { "_index" : "test", "_type" : "_doc", "_id" : "3" } }//新增
+    { "field1" : "value3" }//上一步的请求体
+    { "update" : {"_id" : "1", "_type" : "_doc", "_index" : "test"} }//更新
+    { "doc" : {"field2" : "value2"} }//上一步的请求体
+    '
+    
+
+### reindex
+
+    curl -X POST "localhost:9200/_reindex?pretty" -H 'Content-Type: application/json' -d'
+    {
+     "conflicts": "proceed",//报版本冲突之后继续处理，最终返回版本冲突数据
+      "source": {
+        "index": "twitter",
+         "type": "_doc",
+        "size": 10000,
+        "sort": { "date": "desc" }
+         "query": {
+            "term": {
+             "user": "kimchy"
+           }
+          }
+      },
+      "dest": {
+        "index": "new_twitter",
+        "version_type": "internal",
+         "op_type": "create".//目标索引数据已存在则报版本冲突
+      },
+     "script": {
+        "source": "if (ctx._source.foo == 'bar') {ctx._version++; ctx._source.remove('foo')}",
+        "lang": "painless"
+      }
+    }
+    '
+
+- 只是复制数据，不会同步setting，mapping的设置
+
+- version_type
+  
+  - external:只同步不存在数据和源数据版本大于目标索引的数据
+  
+  - internal:不管版本如何都会将源索引覆盖掉目标索引
+
+- 可以从跨es集群进行操作详见 [Reindex API | Elasticsearch Guide [6.8] | Elastic](https://www.elastic.co/guide/en/elasticsearch/reference/6.8/docs-reindex.html)
+
+## 集群操作
+
+## cat查询
+
+#### 
+
+- op_type=create文档id存在则报错；当没有该设置时文档存在则更新，不存在则新增
+  
+  ```
+  curl -X PUT "localhost:9200/twitter/_doc/1?op_type=create&pretty" -H 'Content-Type: application/json' -d'
+  {
+      "user" : "kimchy",
+      "post_date" : "2009-11-15T14:12:12",
+      "message" : "trying out Elasticsearch"
+  }
+  '
+  h"
+  }
+  ```
+
+- 
+
+- 等待活动分片：索引请求返回前需要等待多少个分片写入成功，
+  
+  - 最小值1（默认，主分片）
+  
+  - 最大值 副本数量+1
+
+- 索引自增
+  
+  - TODO
