@@ -36,15 +36,71 @@
   
   - 示例 curl -X GET "localhost:9200/_search?q=elasticsearch&filter_path=took,-_shards，hits.hits._id,hits.hits._score&pretty"
 
-## 常用配置
+## 通用配置
 
-### 通配符启用
+### action.auto_create_index
 
-action.destructive_requires_name
+ 全局配置，新增文档的时候，如果索引不存在是报错还是自动创建
 
-### 自动创建索引
+### action.destructive_requires_name
 
-action.auto_create_index：新增文档的时候，如果索引不存在是报错还是自动创建
+通配符启用
+
+### indices.requests.cache.size
+
+全局配置,请求缓存,indices.requests.cache.size: 1%一般是heap的1%
+
+### index.requests.cache.enable
+
+索引级别，请求缓存是否使用 true/false
+
+### search.default_allow_partial_results
+
+全局配置,true:在超时或者部分失败的情况下产生部分结果；false：无法产生部分结果，直接返回失败
+
+## 通用参数
+
+### search_type
+
+es有很多shard，每一个shard是一个lucene的索引，保存了自身的TF和DF统计信息。一个shard只知道自身的出现次数，不是整个cluster；但是ES维护了全局的TF/DF统计信息
+
+- dfs_query_then_fetch
+  
+  - 不常用，精准效率低
+  
+  - 使用全局的TF/DF信息进行打分
+
+- query_then_fetch 
+  
+  - 默认，常用，不准确，效率高
+  
+  - 使用自身的TF/DF信息进行打分
+
+### request_cache
+
+- true或者false
+
+- shard/节点级别的缓存
+
+- 只缓存size=0的数据（缓存hits.total, aggregations, suggestions不缓存hits）
+
+- 缓存键使用整个请求jsonbody，索引json有不一样缓存就无法使用
+
+- 分片数据实际发生变化时失效，缓存满了之后使用最少的缓存键被删除；
+
+- 刷新时间越长，缓存时间越长
+
+### allow_partial_search_results
+
+参见search.default_allow_partial_results
+
+### batched_reduce_size
+
+默认情况下，聚合操作在协调节点需要等所有的分片都取回结果后才执行，使用`batched_reduce_size`参数可以不等待全部分片返回结果，而是在指定数量的分片返回结果之后就可以先处理一部分(`reduce`)。 这样可以避免协调节点在等待全部结果的过程中占用大量内存，避免极端情况下可能导致的OOM。**该字段的默认值为512，从ES 5.4开始支持。
+
+### terminate_after
+
+每个分片要收集的最大文件数，达到这个数字后，查询的执行将提前终止。如果设置了，响应将有一个布尔字段 terminated_early 来表示查询的执行是否真的终止了。默认情况下，没有terminate_after。
 
 ## 数据类型
 
@@ -1452,7 +1508,7 @@ curl -X DELETE "localhost:9200/_template/template_1?pretty"
     }
     '
 
--  如果索引"dynamic": false，添加数据的时候没有对应prop数据，后面更新prop数据之后，该字段依旧只是存储，无法查询，执行`POST test/_update_by_query?refresh&conflicts=proceed` 就可以查询了
+- 如果索引"dynamic": false，添加数据的时候没有对应prop数据，后面更新prop数据之后，该字段依旧只是存储，无法查询，执行`POST test/_update_by_query?refresh&conflicts=proceed` 就可以查询了
 
 - routing，conflicts，wait_for_active_shards
 
@@ -1707,7 +1763,6 @@ curl -X POST "localhost:9200/twitter/_doc/_delete_by_query?conflicts=proceed&pre
     { "update" : {"_id" : "1", "_type" : "_doc", "_index" : "test"} }//更新
     { "doc" : {"field2" : "value2"} }//上一步的请求体
     '
-    
 
 ### reindex
 
