@@ -94,8 +94,6 @@ _last：不存在值的时候排队到尾部
         }
     }
     '
-    
-    
 
 ### nest Object
 
@@ -170,11 +168,10 @@ _last：不存在值的时候排队到尾部
       }
     }
     '
-    
 
 ## Highlight
 
--  场景：在百度查询的时候你经常会发现搜索结果当中你的查询内容被高亮了，这就是highlight的作用；
+- 场景：在百度查询的时候你经常会发现搜索结果当中你的查询内容被高亮了，这就是highlight的作用；
 
 - 工作原理
   
@@ -182,7 +179,7 @@ _last：不存在值的时候排队到尾部
     
     - plain：游标end_offset超过fragment_size乘以创建的片段数量
     
-    - unifined&fast Vector：java的BreakIterator；只要`fragment_size`允许就会是一个有效句子
+    - unified&fast Vector：java的BreakIterator；只要`fragment_size`允许就会是一个有效句子
   
   - 查询最匹配的分段
     
@@ -196,7 +193,7 @@ _last：不存在值的时候排队到尾部
 
 - 配置
   
-  - type:类型unifined，plain，fast Vector
+  - type:类型unified，plain，fast Vector
   
   - boundary_chars：边界字符（断句字符）：.,!?
   
@@ -222,7 +219,26 @@ _last：不存在值的时候排队到尾部
 
 - 示例
 
-  
+    curl -XGET 'localhost:31600/test1/_search' 
+    --header 'Content-Type: application/json' 
+    --data '{
+        "query":{
+            "match":{
+                "text":"中国"
+            }
+        },
+       "highlight" : {
+              "type":"unified",
+              "boundary_scanner_locale":"zh_CN",  "boundary_scanner":"word",
+               "number_of_fragments":3,
+            "fields" : {
+                "text" : {   
+                }
+            }
+        }
+    }'
+
+![](../image/curl-search/2023-03-21-17-01-19-image.png)
 
 ## scroll
 
