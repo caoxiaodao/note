@@ -7,6 +7,8 @@
     * [简介和安装](readme/ji-chu-zhi-shi/jian-jie-he-an-zhuang.md)
     * [通用知识](readme/ji-chu-zhi-shi/curl-cao-zuo.md)
       * [search查询](readme/ji-chu-zhi-shi/curl-search.md)
+      * [索引操作](readme/ji-chu-zhi-shi/curl-indices.md)
+      * [文档操作](readme/ji-chu-zhi-shi/curl-doc.md)
     * [java客户端操作](readme/ji-chu-zhi-shi/java-ke-hu-duan-cao-zuo.md)
 * [linux](linux/README.md)
   * [常用命令](linux/chang-yong-ming-ling.md)

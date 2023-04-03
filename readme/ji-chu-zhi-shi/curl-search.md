@@ -123,7 +123,7 @@ _last：不存在值的时候排队到尾部
     
     返回说明：name是高珊珊或者不是高珊珊的数据都会返回，filter会影响得分，从而影响返回顺序
 
-### 
+ 
 
 ### track_scores
 
@@ -218,10 +218,11 @@ _last：不存在值的时候排队到尾部
   - post_tags：html后标签
 
 - 示例
-
+  
     curl -XGET 'localhost:31600/test1/_search' 
     --header 'Content-Type: application/json' 
     --data '{
+  
         "query":{
             "match":{
                 "text":"中国"
@@ -236,6 +237,7 @@ _last：不存在值的时候排队到尾部
                 }
             }
         }
+  
     }'
 
 ![](../image/curl-search/2023-03-21-17-01-19-image.png)
