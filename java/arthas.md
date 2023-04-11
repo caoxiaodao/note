@@ -83,13 +83,11 @@
    
        [arthas@10306]$ ognl -x 3 '@com.study.demo.service.arthas.ArthasCache@getInstance().map'
        Failed to execute ognl, exception message: ognl.MethodFailedException: Method "getInstance" failed for object com.study.demo.service.arthas.ArthasCache [java.lang.ClassNotFoundException: Unable to resolve class: com.study.demo.service.arthas.ArthasCache], please check $HOME/logs/arthas/arthas.log for more details.
-       
 
 ## trace
 
 方法内部调用路径，并输出方法路径上的每个节点上耗时
 
-    
     [arthas@10306]$ trace com.study.demo.controller.ArthasController testMap  -n 5 --skipJDKMethod false
     Press Q or Ctrl+C to abort.
     Affect(class-cnt:1 , method-cnt:1) cost in 33 ms.
@@ -98,4 +96,3 @@
             +---[0.016243ms] java.util.HashMap:<init>() #27
             +---[0.005917ms] java.util.HashMap:put() #28
             `---[0.019811ms] com.study.demo.service.arthas.TestWatch:testMap() #29
-    

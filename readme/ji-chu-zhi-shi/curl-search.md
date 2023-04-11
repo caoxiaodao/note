@@ -123,11 +123,9 @@ _last：不存在值的时候排队到尾部
     
     返回说明：name是高珊珊或者不是高珊珊的数据都会返回，filter会影响得分，从而影响返回顺序
 
- 
-
 ### track_scores
 
-正常情况下返回如下左图
+排序之后不再进行分数计算，但是添加该参数可以继续进行分数计算，返回示例
 
 ![](../image/curl-search/2023-03-20-17-42-40-image.png)
 
@@ -242,6 +240,300 @@ _last：不存在值的时候排队到尾部
 
 ![](../image/curl-search/2023-03-21-17-01-19-image.png)
 
-## scroll
+## 分页查询
 
-## searchAfter
+原理请看https://mp.weixin.qq.com/s/h99sXP4mvVFsJw6Oh3aU5A?  ；优缺点比对如下图
+
+| 查询方式        | 优点         | 缺点                                                           |
+| ----------- | ---------- | ------------------------------------------------------------ |
+| from+size   | 支持随机翻页     | 最多查询1w条数据<br/>存在深度分页问题，越往后翻译，效率越慢                            |
+| scroll      | 遍历全量数据效率最高 | 响应时间非实时<br/>保留上下文需要堆内存空间，不推荐用作实时查询<br/>每次请求都会按照之前的分页信息往下翻滚一页 |
+| searchAfter | 无限制翻页      | 只能下一页进行翻页<br/>                                               |
+
+### from+size
+
+参见基本使用
+
+### scroll
+
+![](../image/curl-search/2023-04-11-10-58-03-image.png)
+
+第一次请求
+
+    curl --location 'http://127.0.0.1:31600/test4/_search?scroll=1m' \
+    --header 'Content-Type: application/json' \
+    --data '{
+        "query":{
+            "term":{
+                "date":"123456"
+            }
+        },
+        "size":2,
+        "sort":{
+            "number":{
+                "order":"asc"
+            }
+        }
+    
+    }   
+    返回
+    {
+        "_scroll_id": "DnF1ZXJ5VGhlbkZldGNoBQAAAAAAAAKaFmJoQ1dGRGZjUWltb0lJWktIcU5ZT1EAAAAAAAACmxZiaENXRkRmY1FpbW9JSVpLSHFOWU9RAAAAAAAAApwWYmhDV0ZEZmNRaW1vSUlaS0hxTllPUQAAAAAAAAKdFmJoQ1dGRGZjUWltb0lJWktIcU5ZT1EAAAAAAAACnhZiaENXRkRmY1FpbW9JSVpLSHFOWU9R",
+        "hits": {
+            "total": 7,
+            "max_score": null,
+            "hits": [
+                { "number": 1
+                },
+                {
+                 "number": 2
+                }
+            ]
+        }
+    }
+
+第二次请求
+
+    curl --location 'http://127.0.0.1:31600/_search/scroll' \
+    --header 'Content-Type: application/json' \
+    --data '
+    {
+         "scroll" : "1m", 
+        "scroll_id" : "DnF1ZXJ5VGhlbkZldGNoBQAAAAAAAAKkFmJoQ1dGRGZjUWltb0lJWktIcU5ZT1EAAAAAAAACpRZiaENXRkRmY1FpbW9JSVpLSHFOWU9RAAAAAAAAAqYWYmhDV0ZEZmNRaW1vSUlaS0hxTllPUQAAAAAAAAKoFmJoQ1dGRGZjUWltb0lJWktIcU5ZT1EAAAAAAAACpxZiaENXRkRmY1FpbW9JSVpLSHFOWU9R
+    " 
+    }'
+    
+    第二次返回
+    {
+        "_scroll_id": "DnF1ZXJ5VGhlbkZldGNoBQAAAAAAAAKkFmJoQ1dGRGZjUWltb0lJWktIcU5ZT1EAAAAAAAACpRZiaENXRkRmY1FpbW9JSVpLSHFOWU9RAAAAAAAAAqYWYmhDV0ZEZmNRaW1vSUlaS0hxTllPUQAAAAAAAAKoFmJoQ1dGRGZjUWltb0lJWktIcU5ZT1EAAAAAAAACpxZiaENXRkRmY1FpbW9JSVpLSHFOWU9R",
+        "hits": {
+            "total": 7,
+            "max_score": null,
+            "hits": [
+                {
+    
+                        "number": 3,
+    
+                },
+                {
+    
+                        "number": 3,
+        }
+    }
+    第三次返回
+    {
+        "_scroll_id": "DnF1ZXJ5VGhlbkZldGNoBQAAAAAAAAMeFmJoQ1dGRGZjUWltb0lJWktIcU5ZT1EAAAAAAAADHBZiaENXRkRmY1FpbW9JSVpLSHFOWU9RAAAAAAAAAx0WYmhDV0ZEZmNRaW1vSUlaS0hxTllPUQAAAAAAAAMfFmJoQ1dGRGZjUWltb0lJWktIcU5ZT1EAAAAAAAADIBZiaENXRkRmY1FpbW9JSVpLSHFOWU9R",
+        "hits": {
+            "total": 7,
+            "max_score": null,
+            "hits": [
+                {
+    
+                        "number": 3,
+    
+                },
+                {
+    
+                        "number": 4,
+    
+                }
+            ]
+        }
+    }
+
+### searchAfter
+
+第一次请求 :同scroll查询
+
+第二次请求
+
+    curl --location 'http://127.0.0.1:31600/test4/_search' \
+    --header 'Content-Type: application/json' \
+    --data '{
+        "query":{
+            "term":{
+                "date":"123456"
+            }
+        },    
+    //前者是number第一次的值，后面是_id第一次的值 
+        "search_after": [    3,
+                        "l81dWYcB0-9pXv3lee0_"],
+        "size":2,
+        "sort":{
+            "number":{
+                "order":"asc"
+            },
+    //必须加上全局唯一的值排序（_id），不然number都是3之后，数据有丢失
+            "_id":{
+                "order":"asc"
+            }
+        }
+    
+    }
+    '
+
+## Inner hits
+
+ nestObject查询的时候使用：如下nestObject的数据在查询的时候只会返回该条数据[如下图2]，不会返回究竟是数组中的哪条数据被命中了，添加上inner_hits之后便可以看到了[如下图3]
+
+    "nestObject":[{"author":"kimchy","number":1},{"author":"nik9000","number":2}]
+
+![](../image/curl-search/2023-04-07-09-49-40-image.png)
+
+![](../image/curl-search/2023-04-07-09-52-11-image.png)
+
+## field collapsing
+
+  字段折叠功能实现如下需求：例如搜索关键字鱼，并且希望返回结果按照菜系进行合并去重；如果你想到了分类聚合，它的局限性在于不够精准，无法分页；所以有了这个功能
+
+    curl --location --request GET 'http://127.0.0.1:31600/test4/_search/' \
+    --header 'Content-Type: application/json' \
+    --data '{
+        "query":{
+            "term":{
+                "text":"text1"
+            }
+        }, 
+        "collapse" : {
+            "field" : "keyword" ,//扩展分组下的值
+             "inner_hits": {
+          "name": "top_rated",
+          "size": 3,
+          "sort": [
+            {
+              "number": "asc"
+            }
+          ]
+             }
+        },
+        "from":0,
+        "size":4,//分组的值
+        "sort":{
+            "number":{
+                "order":"asc"
+            }
+        }
+    
+    }
+    '
+
+## 其他
+
+### explain
+
+  解释score计算的方式
+
+### preference
+
+  指定执行搜索请求的shard
+
+### rescoring：
+
+    curl -X POST "localhost:9200/_search?pretty" -H 'Content-Type: application/json' -d'
+    {
+       "query" : {
+          "match" : {
+             "message" : {
+                "operator" : "or",
+                "query" : "the quick brown"
+             }
+          }
+       },
+       "rescore" : {
+          "window_size" : 50,//针对于前50条数据重新计算分数
+          "query" : {
+             "rescore_query" : {
+                "match_phrase" : {
+                   "message" : {
+                      "query" : "the quick brown",
+                      "slop" : 2
+                   }
+                }
+             },
+             "query_weight" : 0.7,//查询权重
+             "rescore_query_weight" : 1.2 //重新查询权重
+          }
+       }
+    }
+    '
+    注意：计算结果只能使用分数排序，否则会报错
+
+### seq_no_primary_term
+
+返回 "_seq_no"和 "_primary_term"(ES高并发情况下，可以确定数据唯一性),
+
+### version
+
+ 返回数据的版本信息
+
+### indices_boot
+
+ 为不同的索引设置不同的权重
+
+    curl -X GET "localhost:9200/_search?pretty" -H 'Content-Type: application/json' -d'
+    {
+        "indices_boost" : {
+            "index1" : 1.4,
+            "index2" : 1.3
+        }
+    }
+    '
+
+### min_score
+
+ 筛选分数大于min_score的文档
+
+    curl -X GET "localhost:9200/_search?pretty" -H 'Content-Type: application/json' -d'
+    {
+        "min_score": 0.5,
+        "query" : {
+            "term" : { "user" : "kimchy" }
+        }
+    }
+    '
+
+### _name
+
+ 为每一个查询起一个名字，matched_queries返回每条数据究竟命中的是哪个查询条件
+
+    curl -X GET "localhost:9200/_search?pretty" -H 'Content-Type: application/json' -d'
+    {
+        "query": {
+            "bool" : {
+                "should" : [
+                    {"match" : { "name.first" : {"query" : "shay", "_name" : "first"} }},
+                    {"match" : { "name.last" : {"query" : "banon", "_name" : "last"} }}
+                ],
+                "filter" : {
+                    "terms" : {
+                        "name.last" : ["banon", "kimchy"],
+                        "_name" : "test"
+                    }
+                }
+            }
+        }
+    }
+    '
+    返回   
+    "hits": [
+                {
+                    "_index": "test1",
+                    "_type": "_doc",
+                    "_id": "Ox2nSocB4NIHPjWaJh0e",
+                    "_score": 2.554441,
+                    "_source": {
+                        "date": "123456",
+                        "longRange": {
+                            "gte": 30,
+                            "lte": 50
+                        },
+                        "keyword": "测试",
+                        "number": 3,
+                        "text": "你知道"
+                    },
+                    "matched_queries": [
+                        "first"//该条数据命中的是哪个请求
+                    ]
+                },
+
+- 
