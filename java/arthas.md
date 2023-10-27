@@ -79,7 +79,8 @@
    ![](../image/arthas/2023-04-03-14-28-35-image.png)
    ![](../image/arthas/2023-04-03-14-32-17-image.png)
    
-   报错如下，解决方案如上指定classload（-c）参数；查询方式classloader -t
+   报错如下，解决方案如上指定classload（-c）参数；查询方式
+   sc -d  类名称
    
        [arthas@10306]$ ognl -x 3 '@com.study.demo.service.arthas.ArthasCache@getInstance().map'
        Failed to execute ognl, exception message: ognl.MethodFailedException: Method "getInstance" failed for object com.study.demo.service.arthas.ArthasCache [java.lang.ClassNotFoundException: Unable to resolve class: com.study.demo.service.arthas.ArthasCache], please check $HOME/logs/arthas/arthas.log for more details.
@@ -96,3 +97,23 @@
             +---[0.016243ms] java.util.HashMap:<init>() #27
             +---[0.005917ms] java.util.HashMap:put() #28
             `---[0.019811ms] com.study.demo.service.arthas.TestWatch:testMap() #29
+
+# jad
+
+  反编译代码
+
+    jad cn.cybertron.primus.alert.utils.AlertFactory --source-only /home/AlertFactory.java
+
+# retransform
+
+    retransform 编译好的class文件路径
+
+# 常见问题
+
+## 端口占用
+
+方法1：java -jar arthas-client.jar 127.0.0.1  -c \"stop\"
+方法2:  正常运行arthas,然后选择占用的进程，并执行stop
+
+方法3：java
+-jar arthas-boot.jar --telnet-port 1111 --http-port 2222

@@ -536,4 +536,36 @@ _last：不存在值的时候排队到尾部
                     ]
                 },
 
-- 
+# query DSL
+
+## query和filter的区别
+
+query回答查询条件和文件的匹配程度如何？参与分数计算
+
+filter回答文件是否符合查询条款？不参与分数计算
+
+## Match ALL
+
+所有全部文档，分数都为1.0
+
+    curl -X GET "localhost:9200/_search?pretty" -H 'Content-Type: application/json' -d'
+    {
+        "query": {
+            "match_all": {"boost" : 1.2} //boost可以不设置
+        }
+    }
+    '
+
+## 全文搜索
+
+## term搜索
+
+## 组合搜索
+
+## Join搜索
+
+## geo搜索
+
+## 专业搜索
+
+## span搜索

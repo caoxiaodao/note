@@ -1,6 +1,6 @@
 # 问题记录
 
-## 数据无法入库
+## es全部数据无法入库
 
 ### 现象
 
@@ -48,4 +48,41 @@ curl 'http://localhost:31600/_cat/nodes?v&h=segments.count,segments.memory,segme
 
 - 扩容后所有索引为green状态
 
-- 每个ES节点的data目录应该在不同的磁盘：可能会受到IO的限制，读取还是有问题es入门
+- 每个ES节点s的data目录应该在不同的磁盘：可能会受到IO的限制，读取还是有问题es入门
+
+## es告警数据无法入库
+
+### 现象：
+
+  事件数据可以正常入库查询，告警数据可查询，无法入库
+
+### 排查过程：
+
+    1.查看es集群状态：正常
+
+    2.查看告警索引是否为只读
+
+       cluster.routing.allocation.disk.watermark.low: 85% 将拒绝写入
+       cluster.routing.allocation.disk.watermark.high: 90%
+
+     curl -XGET 'localhost:31600/alert_event_v0/_settings?pretty'
+    
+    curl -XPUT 'localhost:31600/alert_event_v0/_settings' -H 'Content-Type: application/json' -d'{
+      "index.blocks.write": false
+    }'
+
+    3.排查代码
+
+        入口：cn.cybertron.primus.alert.service.AlertService.insert2db()
+
+![](../image/wen-ti-ji-lu/2023-05-08-11-37-53-image.png)
+
+   结论：告警数据入库需要判断索引状态，索引状态在项目启动时根据 es的索引模板和索引mapping的初始化情况而定，如果索引模板或者索引初始化失败则无法进行数据入库
+
+   es不可以更新已存在字段的字段类型 [Put Mapping | Elasticsearch Guide [6.8] | Elastic](https://www.elastic.co/guide/en/elasticsearch/reference/6.8/indices-put-mapping.html)
+
+出现原因：在sql当中更新了告警的字段并且在代码中使用，但是没有进行过项目重启
+
+### 解决方案
+
+    更新告警的索引版本
