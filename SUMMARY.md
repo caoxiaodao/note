@@ -24,6 +24,7 @@
   - [io模型](java/io.md)
   - [多线程](java/thread.md)
   - [arthas](java/arthas.md)
+  - [小技能](java/tips.md)
 - [springboot](springboot/README.md)
   - [待整理](springboot/demo1.md)
 - [work](work/README.md)
@@ -31,3 +32,4 @@
   - [work-git](work/work-git.md)
   - [work-axure](work/work-axure.md)
   - [work-vue](work/work-vue.md)
+  - [打包相关](work/work-dabao.md)

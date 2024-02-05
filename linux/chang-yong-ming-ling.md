@@ -25,6 +25,10 @@
   firewall-cmd --permanent --add-rich-rule='rule family="ipv4" source address="10.44.237.102" port protocol="tcp" port="31600-31800" accept'
   ```
 
+- 防火墙向指定ip开放
+  
+      firewall-cmd --zone=public --add-port=80/tcp --permanent
+
 ## 网络配置和管理
 
 ### 修改网卡配置
