@@ -33,3 +33,4 @@
   - [work-axure](work/work-axure.md)
   - [work-vue](work/work-vue.md)
   - [打包相关](work/work-dabao.md)
+  - [gh-pages提交](work/work-dabao.md)
