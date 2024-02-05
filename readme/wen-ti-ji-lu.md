@@ -85,4 +85,4 @@ curl 'http://localhost:31600/_cat/nodes?v&h=segments.count,segments.memory,segme
 
 ### 解决方案
 
-    更新告警的索引版本
+    更新告警的索引版本hhhh
