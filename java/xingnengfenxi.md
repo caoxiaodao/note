@@ -73,6 +73,8 @@
   - /jmap -F  -J-d64 -dump:format=b,file=heap.bin 进程id
     
     - 之后使用MemoryAnalyzer进行分析 (zip下MemoryAnalyzer-1.11.0.20201202-win32.win32.x86_64.zip)
+  
+  - jcmd <pid> GC.heap_dump <filename>
 
 # CPU分析
 

@@ -78,10 +78,16 @@
   - [ES中index和type的区别_行走的IT-CSDN博客_es typeblog.csdn.net](https://link.zhihu.com/?target=https%3A//blog.csdn.net/tengxing007/article/details/100663530)
 
 - 节点：一个节点是集群中的一个服务器，由一个名字来标识，并且通过集群的名字加入到一个指定的集群当中，默认的集群名称是"elasticsearch"
+  
+  ![](../image/jian-jie-he-an-zhuang/2025-07-02-09-19-05-image.png)
 
 - 集群：一个集群由一个节点或者多个节点组成，共同持有整个数据，并一起提供索引和所有功能
+  
+  ![](../image/jian-jie-he-an-zhuang/2025-07-02-09-36-59-image.png)
 
 - 分片和复制：索引可以建立多个分片>水平分割数据，进行分布式，并行操作
+  
+  ![](../image/jian-jie-he-an-zhuang/2025-07-02-09-25-37-image.png)
 
 - 复制：高可用性，主从分片不要再同一个节点上
   
